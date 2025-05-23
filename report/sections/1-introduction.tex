@@ -1,0 +1,32 @@
+\section{Introduction}
+Recent research on game strategy agents has flourished in response to the growing demand for intelligent systems capable 
+of playing strategic games either alongside or against human players. 
+Reinforcement learning (RL) has established itself as a powerful paradigm for training such agents, enabling them to acquire 
+optimal behaviors through interaction with an environment to maximize cumulative rewards over time.
+A variety of algorithmic advancements have been proposed for a comprehensive generalist mastering diverse games within a unified framework. 
+\textbf{Deep Q-Network (DQN)} \cite{mnih2013playingatarideepreinforcement} pioneered the use of deep neural networks to approximate value 
+functions, enabling end-to-end learning from raw pixel inputs. 
+\textbf{Proximal Policy Optimization (PPO)} \cite{schulman2017proximalpolicyoptimizationalgorithms} introduced a more stable and 
+sample-efficient policy gradient method, supporting large-scale training through self-play and mini-batch updates from stored trajectories.
+
+Building on these foundations, \textbf{AlphaZero} \cite{silver2017masteringchessshogiselfplay} demonstrated the power of combining deep 
+learning with tree-based planning in a model-based fashion, but it relied on known environment dynamics—most notably, the rules of the game. 
+\textbf{MuZero} \cite{Schrittwieser2020} advanced this line of work by learning not only the policy and value functions but also a latent, 
+implicit model of the environment’s dynamics. 
+This abstraction allowed \textbf{MuZero} to extend the planning-based advantages of \textbf{AlphaZero} to previously unknown or complex 
+domains, where explicit modeling is impractical. 
+MuZero represents a paradigm shift in model-based RL by learning not only the value and policy functions, but also the dynamics of the 
+environment without access to the actual game rules. Its success has been demonstrated across a diverse range of domains, including board 
+games like Go, Chess, and Shogi, as well as in more complex and dynamic environments such as Atari. 
+MuZero’s ability to integrate planning with learned models and to perform well in both deterministic and stochastic environments positions 
+it as one of the most general and powerful agents to date.
+
+As part of our investigation into MuZero's adaptability to varied strategic domains, we selected \emph{Connect6}, a relatively underexplored game 
+known for its balanced mechanics and heightened complexity relative to classic games like \emph{Gomoku}. 
+\emph{Connect6} addresses the first-player advantage problem inherent in many connection games by introducing the continuous dual-step rule. 
+This subtle change significantly increases the strategic depth and makes the game an ideal candidate for advanced AI research. 
+Though prior works leverage \textbf{Monte Carlo Tree Search} \cite{5740585} or \textbf{AlphaZero} \cite{Yang2020}, most research relies on hand-crafted 
+heuristics and incorporates explicit rule features to structure the training framework.
+In this context, we conduct the experiments with respect to application of \textbf{MuZero} to \emph{Connect6}, aiming to evaluate its performance and 
+adaptability in a novel and partially observable environment. 
+This research sheds new light on \textbf{MuZero}’s scalability and progressively helps advance in game-playing intelligent agents.

@@ -1,15 +1,95 @@
 =================== Tzu-Heng =========================
-@article{gao2024large,
-  title={Large language models empowered agent-based modeling and simulation: A survey and perspectives},
-  author={Gao, Chen and Lan, Xiaochong and Li, Nian and Yuan, Yuan and Ding, Jingtao and Zhou, Zhilun and Xu, Fengli and Li, Yong},
-  journal={Humanities and Social Sciences Communications},
-  volume={11},
-  number={1},
-  pages={1--24},
-  year={2024},
-  publisher={Palgrave},
-  url = {https://www.nature.com/articles/s41599-024-03611-3}
+
+=================== Tzu-Heng =========================
+@Article{Schrittwieser2020,
+author={Schrittwieser, Julian
+and Antonoglou, Ioannis
+and Hubert, Thomas
+and Simonyan, Karen
+and Sifre, Laurent
+and Schmitt, Simon
+and Guez, Arthur
+and Lockhart, Edward
+and Hassabis, Demis
+and Graepel, Thore
+and Lillicrap, Timothy
+and Silver, David},
+title={Mastering Atari, Go, chess and shogi by planning with a learned model},
+journal={Nature},
+year={2020},
+month={Dec},
+day={01},
+volume={588},
+number={7839},
+pages={604-609},
+abstract={Constructing agents with planning capabilities has long been one of the main challenges in the pursuit of artificial intelligence. Tree-based planning methods have enjoyed huge success in challenging domains, such as chess1 and Go2, where a perfect simulator is available. However, in real-world problems, the dynamics governing the environment are often complex and unknown. Here we present the MuZero algorithm, which, by combining a tree-based search with a learned model, achieves superhuman performance in a range of challenging and visually complex domains, without any knowledge of their underlying dynamics. The MuZero algorithm learns an iterable model that produces predictions relevant to planning: the action-selection policy, the value function and the reward. When evaluated on 57 different Atari games3---the canonical video game environment for testing artificial intelligence techniques, in which model-based planning approaches have historically struggled4---the MuZero algorithm achieved state-of-the-art performance. When evaluated on Go, chess and shogi---canonical environments for high-performance planning---the MuZero algorithm matched, without any knowledge of the game dynamics, the superhuman performance of the AlphaZero algorithm5 that was supplied with the rules of the game.},
+issn={1476-4687},
+doi={10.1038/s41586-020-03051-4},
+url={https://doi.org/10.1038/s41586-020-03051-4}
 }
+
+@misc{mnih2013playingatarideepreinforcement,
+      title={Playing Atari with Deep Reinforcement Learning}, 
+      author={Volodymyr Mnih and Koray Kavukcuoglu and David Silver and Alex Graves and Ioannis Antonoglou and Daan Wierstra and Martin Riedmiller},
+      year={2013},
+      eprint={1312.5602},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/1312.5602}, 
+}
+
+@misc{schulman2017proximalpolicyoptimizationalgorithms,
+      title={Proximal Policy Optimization Algorithms}, 
+      author={John Schulman and Filip Wolski and Prafulla Dhariwal and Alec Radford and Oleg Klimov},
+      year={2017},
+      eprint={1707.06347},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/1707.06347}, 
+}
+
+@misc{silver2017masteringchessshogiselfplay,
+      title={Mastering Chess and Shogi by Self-Play with a General Reinforcement Learning Algorithm}, 
+      author={David Silver and Thomas Hubert and Julian Schrittwieser and Ioannis Antonoglou and Matthew Lai and Arthur Guez and Marc Lanctot and Laurent Sifre and Dharshan Kumaran and Thore Graepel and Timothy Lillicrap and Karen Simonyan and Demis Hassabis},
+      year={2017},
+      eprint={1712.01815},
+      archivePrefix={arXiv},
+      primaryClass={cs.AI},
+      url={https://arxiv.org/abs/1712.01815}, 
+}
+
+@ARTICLE{5740585,
+  author={Yen, Shi-Jim and Yang, Jung-Kuei},
+  journal={IEEE Transactions on Computational Intelligence and AI in Games}, 
+  title={Two-Stage Monte Carlo Tree Search for Connect6}, 
+  year={2011},
+  volume={3},
+  number={2},
+  pages={100-118},
+  keywords={Games;Vegetation;Search methods;Law;Monte Carlo methods;Iterative algorithm;Board games;Connect6;conservative TSS;iterative TSS;Monte Carlo tree search;threat space search},
+  doi={10.1109/TCIAIG.2011.2134097}}
+
+@PhdThesis{Yang2020,
+author={Yang, Tzu-Yee},
+editor={Wu, I-Chen},
+title={An AlphaZero-Based Design for Connect6},
+series={PQDT - Global},
+year={2020},
+publisher={National Yang Ming Chiao Tung University},
+address={Taiwan R.O.C.},
+pages={48},
+keywords={AlphaZero; 六子棋; Connect6; NCTU6 program; International conferences; Copyright; Computer {\&} video games; Metadata; Preprints; Neural networks; Computer science; Information technology; 0489:Information Technology; 0984:Computer science},
+abstract={This thesis applies an AlphaZero-­like algorithm to the game Connect6. In this thesis, we refer galvanise{\_}zero's work and implement a design for AlphaZero connect6. We address the training effectiveness about this approach. We try to remedy a problem, called ''border problem'', we encountered while training. We discovered a special evaluation method that is stronger than the original approach. Finally, We re­train on some different kind of model-­architectures to find out which kind of model-­architectures are more suitable for Connect6. This program achieves a win rate of 74{\%} against the NCTU6 program, which was developed by CGILab earlier. 替代摘要:本論文以 AlphaZero 演算法訓練出一款六子棋程式。在本論文中，我們參考galvanise{\_}zero 專案的作法，修改六子棋規則以應用 AlphaZero 演算法於六子棋之上，並分析此方法的訓練成效。除此之外，我們提出一系列增強我們程式強度的方法，解決我們的程式遭遇到的邊界問題，並提出一種在真實對戰下強度較高的下棋方式。最後，我們透過調整 ResNet 模型架構之寬度與深度以找出適合訓練六子棋的架構。我們讓這支程式與實驗室先前開發的非 AlphaZero 六子棋程式---NCTU6，進行對戰並獲得 74{\%} 勝率。除此之外，這支程式也獲得了由台灣電腦對局協會舉辦之六子棋項目的銀牌。我們亦讓這支程式參與棋類對戰網頁平台 LittleGolem 上第 30 屆六子棋年賽與 2020 年度的月賽，並取得當次年賽冠軍與總計 10 次月賽冠軍。},
+note={著作權 - Database copyright ProQuest LLC; ProQuest does not claim copyright in the individual underlying works.},
+note={最後更新 - 2024-11-06},
+note={M.C.S.},
+note={31596987},
+isbn={9798383639450},
+url={https://www.proquest.com/dissertations-theses/alphazero-based-design-connect6/docview/3123634451/se-2?accountid=14229},
+language={Chinese}
+}
+
+
 
 
 
