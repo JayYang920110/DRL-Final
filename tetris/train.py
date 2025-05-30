@@ -29,12 +29,12 @@ def get_args():
     parser.add_argument("--num_epochs", type=int, default=10000)
     parser.add_argument("--save_interval", type=int, default=2500)
     parser.add_argument("--replay_memory_size", type=int, default=30000)
-    parser.add_argument("--saved_path", type=str, default="trained_models_shaped_2*6")
+    parser.add_argument("--saved_path", type=str, default="trained_3d_tetris_models")
     return parser.parse_args()
 
 
 def train(opt):
-    wandb.init(project="tetris-dqn", config=vars(opt))
+    wandb.init(project="tetris-dqn-3d", config=vars(opt))
 
     if torch.cuda.is_available():
         torch.cuda.manual_seed(123)
@@ -43,7 +43,7 @@ def train(opt):
 
     os.makedirs(opt.saved_path, exist_ok=True)
 
-    env = Tetris3D(width=opt.width, height=opt.height, block_size=opt.block_size)
+    env = Tetris3D()
     model = DeepQNetwork()
     optimizer = torch.optim.Adam(model.parameters(), lr=opt.lr)
     criterion = nn.MSELoss()
@@ -94,7 +94,7 @@ def train(opt):
         next_state = next_states[index]
         action = next_actions[index]
 
-        reward, done = env.step(action, render=False)
+        reward, done = env.step(action)
         if torch.cuda.is_available():
             next_state = next_state.cuda()
 
@@ -102,8 +102,8 @@ def train(opt):
 
         if done:
             final_score = env.score
-            final_tetrominoes = env.tetrominoes
-            final_cleared_lines = env.cleared_lines
+   
+            final_cleared_planes = env.cleared_planes
             state = env.reset()
             if torch.cuda.is_available():
                 state = state.cuda()
@@ -143,20 +143,18 @@ def train(opt):
         loss.backward()
         optimizer.step()
 
-        print("Epoch: {}/{}, Action: {}, Score: {}, Tetrominoes {}, Cleared lines: {}, Epsilon: {:.4f}".format(
+        print("Epoch: {}/{}, Action: {}, Score: {},  Cleared planes: {}, Epsilon: {:.4f}".format(
             epoch,
             opt.num_epochs,
             action,
             final_score,
-            final_tetrominoes,
-            final_cleared_lines,
+            final_cleared_planes,
             epsilon
         ))
 
         wandb.log({
             "Score": final_score,
-            "Tetrominoes": final_tetrominoes,
-            "Cleared lines": final_cleared_lines,
+            "Cleared planes": final_cleared_planes,
             "Epsilon": epsilon,
             "Loss": loss.item(),
             "Epoch": epoch

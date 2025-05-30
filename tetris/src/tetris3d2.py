@@ -5,6 +5,8 @@ from typing import Optional
 import pyvista as pv
 import numpy as np
 import imageio
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 class Tetris3D:
     """Minimal 3‑D Tetris with one (1×2×2) block and only horizontal translations.
 
@@ -18,7 +20,7 @@ class Tetris3D:
     # ------------------------------------------------------------------
     # Initialise
     # ------------------------------------------------------------------
-    def __init__(self, height: int = 20, width: int = 4, depth: int = 4, device: str = "cpu"):
+    def __init__(self, height: int = 20, width: int = 4, depth: int = 4, device: str = "cuda"):
         self.height = height   # z axis size
         self.width = width     # x axis size
         self.depth = depth     # y axis size
@@ -39,7 +41,7 @@ class Tetris3D:
         self._spawn_piece()
         return self.state_features()
 
-    def step(self, action):
+    def step(self, action, render=False, frames=None):
         """Place the block at horizontal coords (x, y). Return (reward, done)."""
         if self.gameover:
             raise RuntimeError("Episode finished – call reset() first.")
@@ -47,19 +49,23 @@ class Tetris3D:
         x, y = action
         px, py = 2, 2  # block footprint
 
-        # bounds check
         if x < 0 or x + px > self.width or y < 0 or y + py > self.depth:
             self.gameover = True
             return -10.0, True
 
         pos = {"x": x, "y": y, "z": 0}
+
+        # Animate falling step by step
         while not self._collision(self.current_piece, pos):
+            if render and frames is not None:
+                temp_board = self.board.copy()
+                for dx in range(px):
+                    for dy in range(py):
+                        temp_board[pos["z"], x + dx, y + dy] = 1
+                frames.append(temp_board)
             pos["z"] += 1
         pos["z"] -= 1
-        # while not self._collision(self.current_piece, pos):
-        #     frames.append(self.board.copy())  # Optional: for video
-        #     pos["z"] += 1
-        # pos["z"] -= 1
+
         self._store(self.current_piece, pos)
         planes = self._clear_planes()
         reward = 1 + (planes ** 2) * (self.width * self.depth)
@@ -70,6 +76,9 @@ class Tetris3D:
         if self._collision(self.current_piece, self.current_pos):
             self.gameover = True
             reward -= 2
+
+        if render and frames is not None:
+            frames.append(self.board.copy())  # Final resting state
 
         return float(reward), self.gameover
 
@@ -172,29 +181,74 @@ class Tetris3D:
 
 
 
-def render_voxel_video(board_sequence, save_path="tetris3d.mp4", fps=5):
+def render_voxel_video_matplotlib(board_sequence, save_path="tetris3d_matplotlib.mp4", fps=5):
+    import imageio
+    from matplotlib import cm
+
+    h, w, d = board_sequence[0].shape
     images = []
-    h = board_sequence[0].shape[0]   # board 高度
 
-    for board in board_sequence:
-        plotter = pv.Plotter(off_screen=True, window_size=[400, 400])
+    fig = plt.figure(figsize=(6, 6))
+    ax = fig.add_subplot(111, projection='3d')
 
+    def draw_frame(board):
+        ax.clear()
+        ax.set_xlim(0, w)
+        ax.set_ylim(0, d)
+        ax.set_zlim(0, h)
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        ax.set_zlabel('z')
+        ax.view_init(elev=20, azim=135)
+        ax.invert_zaxis() 
+        ax.set_box_aspect([w, d, h])
+
+        # 畫立方體
         z, x, y = np.where(board > 0)
         for xi, yi, zi in zip(x, y, z):
-            world_z = h - 1 - zi       # ### FIX: 反轉 z 軸
-            cube = pv.Cube(
-                center=(xi + 0.5, yi + 0.5, world_z + 0.5),  # 置中
-                x_length=1, y_length=1, z_length=1
-            )
-            plotter.add_mesh(cube, color="cyan", show_edges=True)
+            draw_cube(ax, xi, yi, zi, color='cyan')
 
-        plotter.set_background("white")
-        plotter.view_isometric()       # 這時看起來就像「往下掉」
-        plotter.show(screenshot="frame.png", auto_close=True)
-        images.append(imageio.imread("frame.png"))
+        # 畫邊框
+        draw_wireframe_box(ax, w, d, h)
+
+        fig.canvas.draw()
+        image = np.frombuffer(fig.canvas.tostring_rgb(), dtype='uint8')
+        image = image.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+        return image
+
+    for board in board_sequence:
+        images.append(draw_frame(board))
 
     imageio.mimsave(save_path, images, fps=fps)
-    print(f"Saved to {save_path}")
+    print(f"Saved to {save_path} using matplotlib")
+
+
+def draw_cube(ax, x, y, z, size=1, color='cyan'):
+    # 座標系一致：z 是高度
+    r = [0, size]
+    verts = np.array([
+        [[x+r[0], y+r[0], z+r[0]], [x+r[1], y+r[0], z+r[0]], [x+r[1], y+r[1], z+r[0]], [x+r[0], y+r[1], z+r[0]]],
+        [[x+r[0], y+r[0], z+r[1]], [x+r[1], y+r[0], z+r[1]], [x+r[1], y+r[1], z+r[1]], [x+r[0], y+r[1], z+r[1]]],
+        [[x+r[0], y+r[0], z+r[0]], [x+r[0], y+r[0], z+r[1]], [x+r[0], y+r[1], z+r[1]], [x+r[0], y+r[1], z+r[0]]],
+        [[x+r[1], y+r[0], z+r[0]], [x+r[1], y+r[0], z+r[1]], [x+r[1], y+r[1], z+r[1]], [x+r[1], y+r[1], z+r[0]]],
+        [[x+r[0], y+r[0], z+r[0]], [x+r[1], y+r[0], z+r[0]], [x+r[1], y+r[0], z+r[1]], [x+r[0], y+r[0], z+r[1]]],
+        [[x+r[0], y+r[1], z+r[0]], [x+r[1], y+r[1], z+r[0]], [x+r[1], y+r[1], z+r[1]], [x+r[0], y+r[1], z+r[1]]],
+    ])
+    cube = Poly3DCollection(verts, facecolors=color, linewidths=0.2, edgecolors='black', alpha=1.0)
+    ax.add_collection3d(cube)
+
+
+def draw_wireframe_box(ax, w, d, h):
+    for x in range(w + 1):
+        for y in range(d + 1):
+            ax.plot([x, x], [y, y], [0, h], color='gray', linewidth=0.5, alpha=0.3)
+    for x in range(w + 1):
+        for z in range(h + 1):
+            ax.plot([x, x], [0, d], [z, z], color='gray', linewidth=0.5, alpha=0.3)
+    for y in range(d + 1):
+        for z in range(h + 1):
+            ax.plot([0, w], [y, y], [z, z], color='gray', linewidth=0.5, alpha=0.3)
+
 # ----------------------------------------------------------------------
 # Quick self‑test
 # ----------------------------------------------------------------------
@@ -205,10 +259,10 @@ if __name__ == "__main__":
     done = False
     while not done:
         a = random.choice(env.legal_actions())
-        r, done = env.step(a)
+        r, done = env.step(a, render=True, frames=frames) 
         frames.append(env.board.copy())
     print("Total score:", env.score, "planes cleared:", env.cleared_planes)
-    render_voxel_video(frames)
+    render_voxel_video_matplotlib(frames)
 
 # 檢查重力及高度
 # def test_gravity_and_height():
