@@ -7,6 +7,15 @@ import numpy as np
 import imageio
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
+def generate_o_block_rotations():
+    """只保留 3 種不重複的旋轉。"""
+    return [
+        np.ones((1, 2, 2), dtype=np.int8),  # 平放
+        np.ones((2, 1, 2), dtype=np.int8),  # 沿 x 軸立起
+        np.ones((2, 2, 1), dtype=np.int8),  # 沿 y 軸立起
+    ]
+
 class Tetris3D:
     """Minimal 3‑D Tetris with one (1×2×2) block and only horizontal translations.
 
@@ -26,7 +35,7 @@ class Tetris3D:
         self.depth = depth     # y axis size
         self.device = device
 
-        self.pieces = [np.ones((1, 2, 2), dtype=np.int8)]  # single O‑block
+        self.pieces = generate_o_block_rotations() # single O‑block
         self.reset()
 
     # ------------------------------------------------------------------
@@ -42,12 +51,12 @@ class Tetris3D:
         return self.state_features()
 
     def step(self, action, render=False, frames=None):
-        """Place the block at horizontal coords (x, y). Return (reward, done)."""
         if self.gameover:
             raise RuntimeError("Episode finished – call reset() first.")
 
-        x, y = action
-        px, py = 2, 2  # block footprint
+        x, y, rot_idx = action
+        piece = self.pieces[rot_idx]
+        px, py, pz = piece.shape[1], piece.shape[2], piece.shape[0]
 
         if x < 0 or x + px > self.width or y < 0 or y + py > self.depth:
             self.gameover = True
@@ -56,17 +65,19 @@ class Tetris3D:
         pos = {"x": x, "y": y, "z": 0}
 
         # Animate falling step by step
-        while not self._collision(self.current_piece, pos):
+        while not self._collision(piece, pos):
             if render and frames is not None:
                 temp_board = self.board.copy()
-                for dx in range(px):
-                    for dy in range(py):
-                        temp_board[pos["z"], x + dx, y + dy] = 1
+                for dz in range(pz):
+                    for dx in range(px):
+                        for dy in range(py):
+                            if piece[dz, dx, dy]:
+                                temp_board[pos["z"] + dz, x + dx, y + dy] = 1
                 frames.append(temp_board)
             pos["z"] += 1
         pos["z"] -= 1
 
-        self._store(self.current_piece, pos)
+        self._store(piece, pos)
         planes = self._clear_planes()
         reward = 1 + (planes ** 2) * (self.width * self.depth)
         self.score += reward
@@ -86,21 +97,26 @@ class Tetris3D:
     # Helper to enumerate all next states externally --------------------
     # ------------------------------------------------------------------
     def get_next_states(self, as_feature: bool = True):
-        """Return a dict {(x, y): board / feature} for every legal placement."""
-        px, py = 2, 2
+        """Return a dict {(x, y, rot_idx): board/feature} for every legal (x,y,rotation) placement."""
         states = {}
-        for x in range(self.width - px + 1):
-            for y in range(self.depth - py + 1):
-                pos = {"x": x, "y": y, "z": 0}
-                while not self._collision(self.current_piece, pos):
-                    pos["z"] += 1
-                pos["z"] -= 1
-                board_copy = self.board.copy()
-                for dz in range(1):
-                    for dx in range(px):
-                        for dy in range(py):
-                            board_copy[pos["z"] + dz, x + dx, y + dy] = 1
-                states[(x, y)] = self.state_features(board_copy) if as_feature else board_copy
+        for rot_idx, piece in enumerate(self.pieces):
+            pz, px, py = piece.shape
+            for x in range(self.width - px + 1):
+                for y in range(self.depth - py + 1):
+                    pos = {"x": x, "y": y, "z": 0}
+                    while not self._collision(piece, pos):
+                        pos["z"] += 1
+                    pos["z"] -= 1
+
+                    board_copy = self.board.copy()
+                    for dz in range(pz):
+                        for dx in range(px):
+                            for dy in range(py):
+                                if piece[dz, dx, dy]:
+                                    board_copy[pos["z"] + dz, x + dx, y + dy] = 1
+
+                    key = (x, y, rot_idx)
+                    states[key] = self.state_features(board_copy) if as_feature else board_copy
         return states
 
     def state_features(self, board: Optional[np.ndarray] = None):
@@ -116,19 +132,25 @@ class Tetris3D:
     # Board mechanics
     # ------------------------------------------------------------------
     def _collision(self, piece, pos):
-        for dx in range(2):
-            for dy in range(2):
-                z = pos["z"]
-                x = pos["x"] + dx
-                y = pos["y"] + dy
-                if z >= self.height or self.board[z, x, y]:
-                    return True
+        pz, px, py = piece.shape
+        for dz in range(pz):
+            for dx in range(px):
+                for dy in range(py):
+                    if piece[dz, dx, dy]:
+                        z = pos["z"] + dz
+                        x = pos["x"] + dx
+                        y = pos["y"] + dy
+                        if z >= self.height or self.board[z, x, y]:
+                            return True
         return False
 
     def _store(self, piece, pos):
-        for dx in range(2):
-            for dy in range(2):
-                self.board[pos["z"], pos["x"] + dx, pos["y"] + dy] = 1
+        pz, px, py = piece.shape
+        for dz in range(pz):
+            for dx in range(px):
+                for dy in range(py):
+                    if piece[dz, dx, dy]:
+                        self.board[pos["z"] + dz, pos["x"] + dx, pos["y"] + dy] = 1
 
     def _count_planes(self, board):
         filled = [z for z in range(self.height) if np.all(board[z])]
@@ -173,11 +195,17 @@ class Tetris3D:
     # Actions -----------------------------------------------------------
     # ------------------------------------------------------------------
     def legal_actions(self):
-        px, py = 2, 2
-        return [(x, y) for x in range(self.width - px + 1) for y in range(self.depth - py + 1)]
+        actions = []
+        for rot_idx, piece in enumerate(self.pieces):
+            px, py, pz = piece.shape
+            for x in range(self.width - px + 1):
+                for y in range(self.depth - py + 1):
+                    actions.append((x, y, rot_idx))
+        return actions
 
     def _spawn_piece(self):
         self.current_pos = {"x": self.width // 2 - 1, "y": self.depth // 2 - 1, "z": 0}
+
 
 
 
@@ -252,17 +280,18 @@ def draw_wireframe_box(ax, w, d, h):
 # ----------------------------------------------------------------------
 # Quick self‑test
 # ----------------------------------------------------------------------
-if __name__ == "__main__":
-    frames = []
-    env = Tetris3D(height=20, width=4, depth=4)
-    s = env.reset()
-    done = False
-    while not done:
-        a = random.choice(env.legal_actions())
-        r, done = env.step(a, render=True, frames=frames) 
-        frames.append(env.board.copy())
-    print("Total score:", env.score, "planes cleared:", env.cleared_planes)
-    render_voxel_video_matplotlib(frames)
+
+# if __name__ == "__main__":
+#     frames = []
+#     env = Tetris3D(height=20, width=4, depth=4)
+#     s = env.reset()
+#     done = False
+#     while not done:
+#         a = random.choice(env.legal_actions())
+#         r, done = env.step(a, render=True, frames=frames) 
+#         frames.append(env.board.copy())
+#     print("Total score:", env.score, "planes cleared:", env.cleared_planes)
+#     render_voxel_video_matplotlib(frames)
 
 # 檢查重力及高度
 # def test_gravity_and_height():
