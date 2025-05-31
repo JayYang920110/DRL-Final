@@ -7,6 +7,7 @@ import numpy as np
 import imageio.v2 as imageio
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
 class Tetris3D:
     """Minimal 3‑D Tetris with one (1×2×2) block and only horizontal translations.
 
@@ -29,54 +30,58 @@ class Tetris3D:
         # self.pieces = [np.ones((1, 2, 2), dtype=np.int8)]  # single O‑block
         # self.reset()
         # 定義所有 4 格的基本形狀 (最小包圍盒)
-        self.pieces = [
-           # O 形 (2×2 平面)
-           np.array([[[1,1],
-                      [1,1]]], dtype=np.int8),
-
-           # I 形 (直線 4×1×1)
-           np.array([[[1]], [[1]], [[1]], [[1]]], dtype=np.int8),
-
-           # L 形 (bounding box 3×2×2)
-           np.array([
-               [[1,0],
-                [0,0]],
-               [[1,0],
-                [0,0]],
-               [[1,1],
-                [0,0]],
-           ], dtype=np.int8),
-
-           # T 形 (bounding box 2×3×1)
-           np.array([
-               [[1,1,1]],
-               [[0,1,0]],
-           ], dtype=np.int8),
-
-           # S 形 (bounding box 1×3×2)
-           np.array([[
-               [0,1],
-               [1,1],
-               [1,0],
-           ]], dtype=np.int8),
-
-           # Z 形 (bounding box 1×3×2)
-           np.array([[
-               [1,0],
-               [1,1],
-               [0,1],
-           ]], dtype=np.int8),
-
-           # “三叉槍” Y 形 (bounding box 2×2×2)
-           np.array([
-               [[1,0],
-                [0,0]],
-               [[1,1],
-                [1,0]],
-           ], dtype=np.int8),
+        # 1) 定義所有的「基礎」方塊形狀
+        base_pieces = [
+            # O 形 (1×2×2)
+            np.array([[[1,1],
+                       [1,1]]], dtype=np.int8),
+            # I 形 (4×1×1)
+            np.array([[[1]], [[1]], [[1]], [[1]]], dtype=np.int8),
+            # L 形 (3×2×2)
+            np.array([
+                [[1,0],
+                 [0,0]],
+                [[1,0],
+                 [0,0]],
+                [[1,1],
+                 [0,0]],
+            ], dtype=np.int8),
+            # T 形 (2×3×1)
+            np.array([
+                [[1,1,1]],
+                [[0,1,0]],
+            ], dtype=np.int8),
         ]
+
+        # 2) 生成每個基礎方塊的所有「唯一」旋轉版本
+        self.piece_orientations = [
+            self._get_unique_rotations(piece) for piece in base_pieces
+        ]
+
+        # 接著呼叫 reset 會自動 _spawn_piece()
         self.reset()
 
+    def _get_unique_rotations(self, piece: np.ndarray):
+        """BFS 生成這個方塊在三個軸 (z, x, y) 上所有 90° 的唯一旋轉。"""
+        axes = [(1,2), (0,2), (0,1)]  # (z 旋轉)、(x 旋轉)、(y 旋轉)
+        seen = set()
+        queue = [piece]
+        unique = []
+
+        while queue:
+            p = queue.pop(0)
+            key = p.tobytes()
+            if key in seen:
+                continue
+            seen.add(key)
+            unique.append(p)
+            # 嘗試所有軸的 90°, 180°, 270°
+            for ax in axes:
+                for k in (1,2,3):
+                    q = np.rot90(p, k=k, axes=ax)
+                    if q.tobytes() not in seen:
+                        queue.append(q)
+        return unique  # list of np.ndarray
     # ------------------------------------------------------------------
     # Public RL API
     # ------------------------------------------------------------------
@@ -93,11 +98,13 @@ class Tetris3D:
         if self.gameover:
             raise RuntimeError("Episode finished – call reset() first.")
 
-        x, y = action
-        # px, py = 2, 2  # block footprint
-        pz, px, py = self.current_piece.shape
+        rot_idx, x, y = action
+        # 1) 更新旋轉
+        self.current_rotation = rot_idx
+        self.current_piece = self.piece_orientations[self.current_piece_type][rot_idx]
 
-        # bounds check
+        # 2) 跟原本一樣算落點
+        pz, px, py = self.current_piece.shape
         if x < 0 or x + px > self.width or y < 0 or y + py > self.depth:
             self.gameover = True
             return -10.0, True
@@ -106,16 +113,14 @@ class Tetris3D:
         while not self._collision(self.current_piece, pos):
             pos["z"] += 1
         pos["z"] -= 1
-        # while not self._collision(self.current_piece, pos):
-        #     frames.append(self.board.copy())  # Optional: for video
-        #     pos["z"] += 1
-        # pos["z"] -= 1
+
         self._store(self.current_piece, pos)
         planes = self._clear_planes()
         reward = 1 + (planes ** 2) * (self.width * self.depth)
         self.score += reward
         self.cleared_planes += planes
 
+        # 3) 換下一個方塊
         self._spawn_piece()
         if self._collision(self.current_piece, self.current_pos):
             self.gameover = True
@@ -127,29 +132,35 @@ class Tetris3D:
     # Helper to enumerate all next states externally --------------------
     # ------------------------------------------------------------------
     def get_next_states(self, as_feature: bool = True):
-        """Return a dict {(x, y): board / feature} for every legal placement."""
-        # px, py = 2, 2
-        pz, px, py = self.current_piece.shape
+        """
+        Return a dict {(rotation_idx, x, y): board / feature} for every legal placement
+        across all possible rotations of the current piece type.
+        """
         states = {}
-        for x in range(self.width - px + 1):
-            for y in range(self.depth - py + 1):
-                pos = {"x": x, "y": y, "z": 0}
-                while not self._collision(self.current_piece, pos):
-                    pos["z"] += 1
-                pos["z"] -= 1
-                board_copy = self.board.copy()
-                # for dz in range(1):
-                #     for dx in range(px):
-                #         for dy in range(py):
-                #             board_copy[pos["z"] + dz, x + dx, y + dy] = 1
+        # 取出當前 piece type 的所有朝向清單
+        orientations = self.piece_orientations[self.current_piece_type]
 
-                for dz in range(pz):
-                    for dx in range(px):
-                        for dy in range(py):
-                            if self.current_piece[dz,dx,dy]:
-                                board_copy[pos["z"] + dz, x + dx, y + dy] = 1
+        for rot_idx, piece in enumerate(orientations):
+            pz, px, py = piece.shape
+            for x in range(self.width - px + 1):
+                for y in range(self.depth - py + 1):
+                    # 計算落下的 z 座標
+                    pos = {"x": x, "y": y, "z": 0}
+                    while not self._collision(piece, pos):
+                        pos["z"] += 1
+                    pos["z"] -= 1
 
-                states[(x, y)] = self.state_features(board_copy) if as_feature else board_copy
+                    # 複製版面並「放置」這個 rotation 的 piece
+                    board_copy = self.board.copy()
+                    for dz in range(pz):
+                        for dx in range(px):
+                            for dy in range(py):
+                                if piece[dz, dx, dy]:
+                                    board_copy[pos["z"] + dz, x + dx, y + dy] = 1
+
+                    key = (rot_idx, x, y)
+                    states[key] = self.state_features(board_copy) if as_feature else board_copy
+
         return states
 
     def state_features(self, board: Optional[np.ndarray] = None):
@@ -243,23 +254,31 @@ class Tetris3D:
     # Actions -----------------------------------------------------------
     # ------------------------------------------------------------------
     def legal_actions(self):
-        # px, py = 2, 2
-        # return [(x, y) for x in range(self.width - px + 1) for y in range(self.depth - py + 1)]
-        # 用當前方塊的寬度和深度來決定所有合法放置位置
-        _, px, py = self.current_piece.shape
-        return [
-            (x, y)
-            for x in range(self.width - px + 1)
-            for y in range(self.depth - py + 1)
-        ]
+        """
+        列舉對當前方塊類型、每個可用朝向，在 x/y 上的所有合法放置。
+        回傳列表 [(rotation_idx, x, y), ...]
+        """
+        acts = []
+        orientations = self.piece_orientations[self.current_piece_type]
+        for rot_idx, piece in enumerate(orientations):
+            _, px, py = piece.shape
+            for x in range(self.width - px + 1):
+                for y in range(self.depth - py + 1):
+                    acts.append((rot_idx, x, y))
+        return acts
     
     def _spawn_piece(self):
-        # self.current_pos = {"x": self.width // 2 - 1, "y": self.depth // 2 - 1, "z": 0}
-        # 隨機從所有 pieces 裡挑一個，並把它放到中心
-        self.current_piece = random.choice(self.pieces)
+        # 隨機選一種 base piece, 再隨機選一個朝向
+        self.current_piece_type = random.randrange(len(self.piece_orientations))
+        orientations = self.piece_orientations[self.current_piece_type]
+        self.current_rotation = random.randrange(len(orientations))
+        self.current_piece = orientations[self.current_rotation]
+
+        # 初始放在中間
+        _, px, py = self.current_piece.shape
         self.current_pos = {
-            "x": (self.width  - self.current_piece.shape[1]) // 2,
-            "y": (self.depth  - self.current_piece.shape[2]) // 2,
+            "x": (self.width  - px) // 2,
+            "y": (self.depth - py) // 2,
             "z": 0
         }
 
