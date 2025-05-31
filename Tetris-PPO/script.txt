@@ -1,0 +1,1 @@
+python train_ppo.py  --total-timesteps 800000 --learning-rate 3e-4 --num-envs 1 --num-minibatches 8 --num-steps 1024 --update-epochs 5 --max-grad-norm 0.5 --clip-coef 0.2 --vf-coef 0.5 --ent-coef 0.025 --gamma 0.99 --gae-lambda 0.95 --capture-video False --from-pretrained False 
