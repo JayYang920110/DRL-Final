@@ -1,33 +1,15 @@
 \section{Introduction}
-Recent research on game strategy agents has flourished in response to the growing demand for intelligent systems capable of playing 
-strategic games either alongside or against human players. 
-Reinforcement learning (RL) has established itself as a powerful paradigm for training such agents, enabling them to acquire optimal 
-behaviors through interaction with an environment to maximize cumulative rewards over time. 
-Since \textbf{AlphaGo} \cite{Silver2016} made its debut and stunned the world by defeating a top human player in 2014, 
-its underlying techniques have attracted widespread attention for their adaptability and accurate predictive capabilities. 
-Recognizing the potential of reinforcement learning in artificial intelligence, the research community burgeoned rapidly, 
-leading to significant strides in the field. 
-A variety of algorithmic advancements currently have been proposed for a comprehensive generalist mastering diverse games within a unified framework. 
+Recent research on game strategy agents has flourished in response to the growing demand for intelligent systems capable of playing strategic games either alongside or against human players. 
+Reinforcement learning has established itself as a powerful paradigm for training such agents, enabling them to acquire optimal behaviors through interaction with an environment to maximize cumulative rewards over time.
+Since \textbf{AlphaGo} \cite{Silver2016} made its debut and stunned the world by defeating a top human player in 2014, its underlying techniques have attracted widespread attention for their adaptability and accurate predictive capabilities. 
+Recognizing the potential of reinforcement learning in artificial intelligence, the research community burgeoned rapidly, leading to significant strides in the field. 
 
-\textbf{Deep Q-Network (DQN)} \cite{mnih2013playingatarideepreinforcement} pioneered the integration of deep neural networks with reinforcement 
-learning by approximating value functions, thereby enabling end-to-end learning directly from raw pixel inputs without the need for hand-crafted 
-feature extraction. 
-Additionally, it introduced the concept of experience replay, which significantly improved sample efficiency and alleviated the challenges 
-associated with the temporal correlation of sequential data. 
-However, \textbf{DQN} exhibits inherent limitations in handling tasks involving continuous action spaces. 
-This limitation was later addressed by the 
-introduction of the \textbf{Deep Deterministic Policy Gradient (DDPG)} \cite{lillicrap2019continuouscontroldeepreinforcement}, 
-which leveraged policy gradient methods within an actor-critic framework to enable learning in continuous domains.
-\textbf{Proximal Policy Optimization (PPO)} \cite{schulman2017proximalpolicyoptimizationalgorithms} subsequently introduced a 
-clipped surrogate objective function to effectively address optimization challenges in continuous action spaces. 
-\textbf{PPO} adopts a meticulous policy design updating mechanism within a trust region, ensuring both stability and efficiency. 
-The resulting formulation achieves a compelling balance between robust convergence and practical implementation. 
-Moreover, it implicitly navigates the exploration-exploitation trade-off, thereby reducing the risk of premature convergence to suboptimal policies.
+Despite the prevalence of comprehensive surveys on reinforcement learning, certain lesser-known games remain underrepresented, leaving challenges unexplored and insufficiently addressed. 
+These marginalized environments often suffer from limited accessibility or standardization, yet they offer valuable opportunities for both advancing the field and making it more approachable. 
+In particular, such games can serve as practical testbeds that lower the entry barrier for RL newcomers by providing simpler, controlled environments for experimentation. 
+Exploring these games not only helps bridge gaps in current research coverage but also fosters broader engagement and understanding of core RL concepts.
 
-Previous studies have demonstrated that model-based approaches, such as \textbf{MuZero} \cite{Schrittwieser2020}, 
-have achieved expert-level proficiency across a diverse range of games. 
-In contrast, model-free methods have lacked comprehensive evaluations regarding their capacity for self-adaptation to varying dynamics. 
-In this research, we examine the performance of \textbf{DQN} and \textbf{PPO} in both the classic \emph{2D Tetris} and a redesigned
- \emph{3D Cube-Tetris}. 
- Through comparative analysis, we aim to elucidate their respective strengths and limitations, contributing to a deeper understanding of 
- their applicability across different gaming environments.
+\emph{Tetris} is a classic tile-matching puzzle game in which players manipulate falling geometric blocks to form and clear horizontal lines within a confined grid. 
+Several studies \cite{algorta2019gametetrismachinelearning, chen2021playing} have demonstrated the success of reinforcement learning in classic \emph{Tetris}, while overlooking its variants.
+In this research, we use \emph{2D Tetris} with its classic rules as a benchmark to assess the performance of \textbf{Deep Q-Network (DQN)} \cite{mnih2013playingatarideepreinforcement} across two distinct environments: \emph{2D-Pentominoes-Tetris} and \emph{3D-Cube-Tetris}. 
+Through comparative analysis, we aim to elucidate the strengths and limitations of \textbf{DQN}, contributing to a deeper understanding of its applicability across diverse gaming environments.
